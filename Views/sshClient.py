@@ -21,8 +21,9 @@ class sshClientCom(metaclass=SingletonMeta):
             self.ssh = SSHClient()
             self.ssh.load_system_host_keys()
             self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            print(f"Url --> {self.url} | UserName -->{self.username} | password -->{self.password}")
             self.ssh.connect(self.url, username=self.username,
-                             password=self.password)
+                             password=self.password,port=22)
             self.connected = True
 
         except Exception as ex:
@@ -55,9 +56,10 @@ class sshClientCom(metaclass=SingletonMeta):
 
     def changeToMainPath(self, files):
         try:
+            
             commands = f"sudo -iu root bash -c '"
             for i in files.keys():
-                commands += f"cp /home/{self.username}/tmp/{i}  {self.mainDist};"
+                commands += f"cp /home/{self.setUsername()}/tmp/{i}  {self.mainDist};"
                 commands += f'chmod 664 {self.mainDist}{i}; chown {self.serverAccountName} {self.mainDist}{i};'
             commands += " echo \"completed\"; '"
             print(commands)
@@ -74,17 +76,18 @@ class sshClientCom(metaclass=SingletonMeta):
         except Exception as e:
             raise e
 
-    def downloadFile(self, fileNames, progressCallBack):
+    def downloadFile(self, fileNames, progressCallBack,pathtoSave):
         try:
             if not self.connected:
                 self.connect()
             if self.connected:
                 files = []
-                self.ssh.exec_command(f"mkdir /home/{self.username}/tmp/")
+                self.ssh.exec_command(f"mkdir /home/{self.setUsername()}/tmp/")
                 commands = f"sudo -iu root bash -c '"
                 for n, i in fileNames.items():
-                    tmp = f"/home/{self.username}/tmp/"
+                    tmp = f"/home/{self.setUsername()}/tmp/"
                     commands += f"cp {i} {tmp} ;"
+                    commands += f'chmod 775 /home/{self.setUsername()}/tmp/{n}; chown {self.setUsername()} /home/{self.setUsername()}/tmp/{n};'
                     files.append(f"{tmp}{n}")
                 commands += " echo \"completed\"; '"
                 print(commands)
@@ -99,10 +102,16 @@ class sshClientCom(metaclass=SingletonMeta):
                 print(stdout.read().decode("utf-8"))
                 scp = SCPClient(self.ssh.get_transport(),
                                 progress=progressCallBack)
-                scp.get(files, recursive=True)
+                scp.get(files, recursive=True,local_path=pathtoSave)
             else:
                 raise Exception("Unable to login")
         except Exception as e:
             traceback.print_exc()
             print(e)
             raise e
+
+    def setUsername(self):
+        username=self.username
+        if '@' in self.username:
+            username=(self.username.split("@")[1]+'/'+self.username.split("@")[0])
+        return username            

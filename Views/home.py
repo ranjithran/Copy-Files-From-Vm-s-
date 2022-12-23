@@ -17,6 +17,7 @@ class Home(UserControl):
         else:
             self.downloadListView = Ref[ListView]()
             self.downloadFileName = Ref[TextField]()
+            self.pathtoSave = Ref[TextField]()
             self.fileNamesTodownload = {}
             self.refDownloadListChildRef = {}
 
@@ -46,7 +47,8 @@ class Home(UserControl):
                     tmp.leading = Icon(
                         icons.DONE, color=colors.GREEN)
                     tmp.trailing = IconButton(
-                        icons.FOLDER, on_click=lambda e: [print(mainName), subprocess.Popen(f'explorer /select,{mainName}')])
+                        icons.FOLDER, on_click=lambda e: [print(mainName), 
+                        subprocess.Popen(f'explorer /select,{self.pathtoSave.current.value}/{mainName}')])
                     tmp.subtitle = Text(f"Saved at {mainName}")
             self.update()
         print(" -> %s progress: %.2f%%   \r" %
@@ -137,7 +139,7 @@ class Home(UserControl):
             self.sshClientCom = sshClientCom(
                 username=self.username, password=self.password, url=self.ipAddress.current.value, userTmpFolder='~/tmp')
             self.sshClientCom.downloadFile(
-                fileNames=self.fileNamesTodownload, progressCallBack=self.progress)
+                fileNames=self.fileNamesTodownload, progressCallBack=self.progress, pathtoSave=self.pathtoSave.current.value)
             self.errorMsg.current.value = "Downloaded successfully, To open click on FolderIcon"
             self.errorMsg.current.color = colors.GREEN
             self.update()
@@ -227,9 +229,8 @@ class Home(UserControl):
                               border_color=colors.PURPLE_ACCENT,
                               hint_text='127.0.0.1'
                               ),
-                    TextField(ref=self.serverAccountName,
-                              label="Service Account name",
-
+                    TextField(ref=self.pathtoSave,
+                              label="Path to save",
                               border_color=colors.PURPLE_ACCENT,
                               ),
                     Row(
